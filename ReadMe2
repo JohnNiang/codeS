@@ -1,0 +1,57 @@
+public Mono<Object> getProductAnalysis(Context context, ProductAnalysisRequest productAnalysisRequest){
+        Date startMonthFirstDate = new Date();
+        Date LastMonthFirstDate = new Date();
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            if(Objects.nonNull(productAnalysisRequest.getStart()) && StringUtil.isNotEmpty(productAnalysisRequest.getStart())
+                    && Objects.nonNull(productAnalysisRequest.getEnd()) && StringUtil.isNotEmpty(productAnalysisRequest.getEnd()))
+            {
+                startMonthFirstDate = sdf.parse(productAnalysisRequest.getStart());
+                LastMonthFirstDate = sdf.parse(productAnalysisRequest.getEnd());
+            }else{
+                LastMonthFirstDate = DateUtils.ZeroPointOfTheDay(Date.from(Instant.now()));
+                startMonthFirstDate = DateUtils.ZeroPointOfTheDay(DateUtils.addMonths(startMonthFirstDate, -6));
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+            log.error(e.getMessage(),e);
+        }
+        ArrayList<Date> monthList = new ArrayList<Date>();
+        monthList.add(startMonthFirstDate);
+        while (!DateUtils.isSameDay(startMonthFirstDate,LastMonthFirstDate)){
+            startMonthFirstDate = DateUtils.addMonths(startMonthFirstDate,1);
+            monthList.add(startMonthFirstDate);
+        }
+        ArrayList<ProductAnalysisDate> strList = new ArrayList<ProductAnalysisDate>();
+        int num = orderLineMapper.queryNuberOfProduct();
+
+        for (Date date:monthList) {
+            ProductAnalysisDate productAnalysisDate = new ProductAnalysisDate();
+            Date lastDate = DateUtils.getLastDateForMonth(date);
+            ArrayList<ProductAnalysisBean> productList = orderLineMapper.queryProductTotalByDate(date,lastDate);
+            productAnalysisDate.setDateStr(DateUtils.getStrByDate(date));
+            productAnalysisDate.setBeanList(productList);
+            strList.add(productAnalysisDate);
+        }
+        //组装二维数组
+        Object[][] resData = new Object[num+1][strList.size()+1];
+        for(int i = 0; i < strList.size();i++){
+            if(i == 0){
+                resData[0][0] = "date";
+                resData[0][1] = strList.get(i).getDateStr();
+            }else{
+                resData[0][i+1] = strList.get(i).getDateStr();
+            }
+        }
+        for (int i = 0; i < strList.size()+1 ; i++){
+            for(int j = 1; j < num+1;j++){
+                if(i == 0){
+                    resData[j][i] = strList.get(i).getBeanList().get(j-1).getName() + "-" + Optional.ofNullable(strList.get(i).getBeanList().get(j-1).getDescription()).orElse("");
+                }else{
+                    resData[j][i] = strList.get(i-1).getBeanList().get(j-1).getTotalNum();
+                }
+            }
+        }
+
+        return just(resData);
+    }
