@@ -1,3 +1,4 @@
+```java
 @Service
 @Slf4j
 public class ReportFinancialReconciliationService extends EntityService<ReportFinancialReconciliation> {
@@ -166,3 +167,4 @@ public class ReportFinancialReconciliationService extends EntityService<ReportFi
         return mapper;
     }
 }
+```
